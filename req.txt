@@ -1,0 +1,12 @@
+chromadb
+sentence_transformers
+tqdm
+sqlalchemy
+psycopg2
+psycopg2-binary
+openai
+telethon
+redis
+python-dotenv
+aiogram
+langchain
