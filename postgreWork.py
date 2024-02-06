@@ -36,6 +36,7 @@ class User(Base):
     all_token=Column(Float)
     all_token_price=Column(Float)
     payload=Column(String)
+    model=Column(String)
 
 class Post(Base):
     __tablename__ = 'post'
@@ -113,7 +114,33 @@ def update_payload(userID:int, payload:str):
     with Session() as session:
         session.query(User).filter(User.id==userID)\
             .update({User.payload:payload}) 
+        session.commit()
 
+def update_model(userID:int, model:str):
+    
+    with Session() as session:
+        session.query(User).filter(User.id==userID)\
+            .update({User.model:model})
+        session.commit()
+        
+def update_token_for_user(userID:int, token:float):
+    with Session() as session:
+        user=session.query(User).filter(User.id==userID).one()
+        user.all_token+=token
+        session.commit()
+
+def update_token_price_for_user(userID:int, tokenPrice:float):
+    with Session() as session:
+        user=session.query(User).filter(User.id==userID).one()
+        user.all_token_price+=tokenPrice
+        session.commit()
+
+
+
+def get_model(userID:int)->str:
+    with Session() as session:
+        user=session.query(User).filter(User.id==userID).one()
+        return user.model
 
 def get_posts():
     with Session() as session:

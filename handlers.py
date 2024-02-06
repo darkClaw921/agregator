@@ -87,7 +87,7 @@ class Form(StatesGroup):
 router = Router()
 
 bot = Bot(token=TOKEN,)
-sheet = Sheet('profzaboru-5f6f677a3cd8.json','Разработка бота Афиша')
+sheet = Sheet('profzaboru-5f6f677a3cd8.json','Афиша - Разработка бота')
 
 @router.message(Command("start"))
 async def start_handler(msg: Message, state: FSMContext):
@@ -97,6 +97,7 @@ async def start_handler(msg: Message, state: FSMContext):
     nickname=msg.from_user.username
     try: 
         postgreWork.add_new_user(userID,nickname)
+        postgreWork.update_model(userID,'gpt')
     except:
         1+0
     # # await state.set_state(Form.selectLang)
@@ -107,6 +108,28 @@ async def start_handler(msg: Message, state: FSMContext):
 Какой тип событий тебя интересует?"""
     await msg.answer(mess)
     return 0
+
+@router.message(Command("gpt"))
+async def gpt_handler(msg: Message, state: FSMContext):
+    userID=msg.chat.id
+    try: 
+        postgreWork.update_model(userID,'gpt')
+    except:
+        1+0
+    
+    mess="""Вы перешли в режим GPT"""
+    await msg.answer(mess)
+
+
+@router.message(Command("assis"))
+async def assis_handler(msg: Message, state: FSMContext):
+    userID=msg.chat.id
+   
+    postgreWork.update_model(userID,'assis')
+    
+    
+    mess="""Вы перешли в режим ассистента"""
+    await msg.answer(mess)
 
 @router.message(Command("clear"))
 async def clear_handler(msg: Message, state: FSMContext):
@@ -122,6 +145,11 @@ async def clear_handler(msg: Message, state: FSMContext):
     await msg.answer(mess)
     return 0
 
+@router.message(Command("help"))
+async def help_handler(msg: Message, state: FSMContext):
+    mess="/start - начало работы\n/gpt - перейти в режим GPT\n/assis - перейти в режим ассистента\n/clear - очистить историю диалога"
+    await msg.answer(mess)
+    return 0
 
 #Обработка калбеков
 @router.callback_query()
@@ -197,6 +225,17 @@ async def message(msg: Message, state: FSMContext):
     messText = msg.text
     userName = msg.from_user.username 
     # pprint(msg.__dict__)
+    typeModel = postgreWork.get_model(userID)
+
+    if typeModel == 'assis':
+        answer=gpt.answer_assistant(messText,1,userID)[0]
+        dateNow = datetime.now().strftime("%d.%m.%Y")
+        await msg.answer(answer)
+        lst=[userName,dateNow, messText, answer, 'assis']
+        sheet.insert_cell(data=lst)
+        return 0
+
+        
     add_message_to_history(msg.chat.id, 'user', msg.text)
     history = get_history(msg.chat.id)
     if len(history) > 20:
@@ -263,7 +302,7 @@ async def message(msg: Message, state: FSMContext):
     # await msg.answer(f"Твой ID: {msg.from_user.id}")
     dateNow = datetime.now().strftime("%d.%m.%Y")
     await msg.answer(answer)
-    lst=[userName,dateNow, messText, answer]
+    lst=[userName,dateNow, messText, answer, 'gpt']
     sheet.insert_cell(data=lst)
     # await msg.send_copy(chat_id=400923372)
     # await bot.send_message(chat_id=400923372, text=f"Твой ID: {msg.from_user.id}")    

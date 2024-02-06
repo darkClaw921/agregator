@@ -65,6 +65,8 @@ def find_patterns(text):
     lenText=[]
     lensymbol=len(text)
     if lensymbol>=250: lenText.append(250)
+    if lensymbol<200: return [],[],[],None,lenText
+    
         
 
     return time_matches, date_matches, days_of_week_matches, extracted_date, lenText
@@ -116,14 +118,14 @@ def create_db():
 
 def convert_text_to_variables(text):
     lines = text.split('\n')
-    date = None
+    date = 'None'
     time = ''
-    topic = None
-    location = None
-    cost = None
-    organizer = None
-    language = None
-    event = None
+    topic = 'None'
+    location = 'None'
+    cost = 'None'
+    organizer = 'None'
+    language = 'None'
+    event = 'None'
     print(text)
     for line in lines:
         if line.startswith('Дата:'):
@@ -143,7 +145,10 @@ def convert_text_to_variables(text):
             except:
                 cost = '0'
         elif line.startswith('Организатор:'):
-            organizer = line.split(': ')[1]
+            try:
+                organizer = line.split(': ')[1]
+            except:
+                organizer = '0'
         elif line.startswith('Язык:'):
             language = line.split(': ')[1]
         elif line.startswith('Мероприятие:'):
@@ -151,7 +156,57 @@ def convert_text_to_variables(text):
 
     return date, time, topic, location, cost, organizer, language, event
 
+def create_csv():
+    import json
+    posts=postgreWork.get_posts()
+    prepateText=''
+    one=True
+    dicts=[]
+    for post in tqdm(posts):
+        pos=post.__dict__
+        pos = {key: value for key, value in pos.items() if value is not None}
         
+        pos.pop('_sa_instance_state')
+        # pos['date']=pos['date'].strftime("%d.%m.%Y")
+        date, time, topic, location, cost, organizer, language, event=convert_text_to_variables(pos['payload'])
+        pos['created_date']=pos['created_date'].strftime("%d.%m.%Y")
+        import csv
+
+        data={
+            'id': pos['id'],
+            # 'created_date': pos['created_date'],
+            'date': date,
+            'time': time,
+            'theme': topic,
+            'location': location,
+            'price': cost, 
+            'host': organizer, 
+            'lang': language, 
+            'event': event,
+            'text': pos['text']
+        }
+                # Ваш словарь
+        #dict_data = {"name": "John", "age": 30, "city": "New York"}
+        dicts.append(data)
+        # Имена полей (ключей словаря)
+        # fieldnames = data.keys()
+
+    with open('event.json', 'w',encoding='utf-8') as json_file:
+        json.dump(dicts, json_file,ensure_ascii=False)
+        # Открываем файл для записи
+        # with open('dict.csv', 'a', newline='') as csvfile:
+        #     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        #     if one:# Записываем заголовки
+        #         writer.writeheader()
+        #         one=False
+            
+
+        #      # Записываем данные словаря
+        #     writer.writerow(data)
+            # return prepateText 
+            # return 0
+
 def create_db2():
 
     # with open(f'textPrepare_{datetime.now().strftime("%d-%m-%Y")}.txt', "a+") as file:
@@ -190,7 +245,8 @@ def create_db2():
         add_to_collection(topic,meta)
         # file.write(prepateText)
     return prepateText
-        
+
+create_csv()        
 # text="""Дата: 02.02.2024
 # Время: 15.00
 # Тема: Банная мистерия

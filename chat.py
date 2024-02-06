@@ -114,11 +114,19 @@ class GPT():
     # Upload a file with an "assistants" purpose
     lista=client.files.list(purpose='assistants')
     pprint(lista)
+    fileCSV=lista.data[0]
+    # client.files.delete(fileCSV.id)
+    # fileCSV=lista.data[1]
+    # client.files.delete(fileCSV.id)
+    # fileCSV=lista.data[2]
+    # client.files.delete(fileCSV.id)
     
-    fileCSV = client.files.create( 
-      file=open("event.csv", "rb"),
-      purpose='assistants')
-    
+    # 1/0
+    #fileID file-dJgl5L10OuqjzYNxfXTQEoWP
+    # fileCSV = client.files.create( 
+    #   file=open("event.json", "rb"),
+    #   purpose='assistants')
+    # # 1/0
     try:
       thread=USERS_THREADS[userID]
     except:
@@ -161,6 +169,9 @@ class GPT():
 
     # logger.info(f'{messages=}')
     # logger.info(f'{messages.content=}')
+    pprint(messages.data[0].content[0].text)
+    pprint(messages.data[0].content[0])
+    pprint(messages.data[0])
     logger.info(f'{messages.data[0].content[0].text.value=}')
     answerText = messages.data[0].content[0].text.value 
     return answerText, 0, 0
@@ -300,5 +311,7 @@ See https://github.com/openai/openai-python/blob/main/chatml.md for information 
     return roleAsnwer
 
   
-   
-  
+if __name__ == "__main__":   
+  gpt = GPT()
+  a = gpt.answer_assistant('Привет, я хочу узнать о мероприятии на завтра', 1, 0)
+  print(a)
