@@ -134,11 +134,17 @@ def convert_text_to_variables(text):
             except: 
                 date ='0'
         elif line.startswith('Время:'):
-            time = line.split(': ')[1]
+            try:
+                time = line.split(': ')[1]
+            except:
+                time = '0'
         elif line.startswith('Тема:'):
             topic = line.split(': ')[1]
         elif line.startswith('Локация:'):
-            location = line.split(': ')[1]
+            try:
+                location = line.split(': ')[1]
+            except:
+                location = '0'
         elif line.startswith('Стоимость участия:'):
             try:
                 cost = line.split(': ')[1]
@@ -150,7 +156,10 @@ def convert_text_to_variables(text):
             except:
                 organizer = '0'
         elif line.startswith('Язык:'):
-            language = line.split(': ')[1]
+            try:
+                language = line.split(': ')[1]
+            except:
+                language = '0'
         elif line.startswith('Мероприятие:'):
             event = line.split(': ')[1]
 
@@ -183,7 +192,10 @@ def create_csv():
             'host': organizer, 
             'lang': language, 
             'event': event,
-            'text': pos['text']
+            'text': pos['text'],
+            'dayoftheweek':datetime.strptime(pos['created_date'], "%d.%m.%Y").strftime("%A"),
+            'todaytomorrow': 'Сегодня' if datetime.strptime(pos['created_date'], "%d.%m.%Y").date() == datetime.now().date() else 'Завтра' if datetime.strptime(pos['created_date'], "%d.%m.%Y").date() == (datetime.now()+timedelta(days=1)).date() else '',
+            'priority':0
         }
                 # Ваш словарь
         #dict_data = {"name": "John", "age": 30, "city": "New York"}

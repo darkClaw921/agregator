@@ -10,3 +10,7 @@ redis
 python-dotenv
 aiogram
 langchain
+ipywidgets
+tiktoken
+loguru
+gspread

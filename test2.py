@@ -2,7 +2,7 @@ from telethon import TelegramClient, events
 from chat import GPT, promtPreparePost
 from pprint import pprint
 import postgreWork
-from helper import check_pattern_count
+from helper import check_pattern_count,convert_text_to_variables
 from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
@@ -54,7 +54,11 @@ async def new_message_listener(event):
     text=event.message.text
 
     userSendID=event.message.from_id
-    userSendNickname=event.message.sender.username
+    try:
+        userSendNickname=event.message.sender.username
+    except:
+        pprint(event.message)
+        userSendNickname=event.message.user.username
     print(text)
     print(userSendID)
     print(userSendNickname)
@@ -72,6 +76,7 @@ async def new_message_listener(event):
         # tokenPrice=allPrice,
         )
         return 0
+    
     # 1/0
     chenalID=event.message.chat.id
     print(chenalID)
@@ -97,8 +102,31 @@ async def new_message_listener(event):
     postIsAdd=postgreWork.check_post(text)
     
     if postIsAdd: return 0
+    date, time, topic, location, cost, organizer, language, event=convert_text_to_variables(answer)
     
+    if event == 0: return 0    
+    if date == 'None' or date=='0': 
+        try:
+            date = datetime.now().strftime("%d.%m.%Y")
+        except:
+            date = datetime.now()
+    if cost == 'None' or cost=='0': 
+        cost = 0
+    if event == 'None' or event=='0': 
+        event = 0
+    elif event=='1':
+        event=1
+    
+    print('добавляем пост')
     postgreWork.add_new_post(
+        date=date,
+        time=time,
+        theme=topic,
+        location=[location],
+        price=cost,
+        organizer=organizer,
+        language=language,
+        event=event,
         postID=messageID,
         chatID=chenalID,
         text=text,

@@ -43,6 +43,14 @@ class Post(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     created_date = Column(DateTime)
+
+    date=Column(DateTime)
+    time=Column(String)
+    organizer=Column(String)
+    language=Column(String)
+    event=Column(Integer)
+    price=Column(Float)
+
     post_id=Column(BigInteger)
     chat_id=Column(BigInteger)
     sender_nickname=Column(String)
@@ -54,6 +62,7 @@ class Post(Base):
     token=Column(Float)
     token_price=Column(Float)
     payload=Column(String) 
+    
     
 
 class Statistick(Base):
@@ -69,7 +78,8 @@ class Statistick(Base):
 
 
 Base.metadata.create_all(engine)
-# Создаем сессию для взаимодействия с базой данных
+
+
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -83,9 +93,30 @@ def add_new_user(userID:int, nickname:str):
         session.add(newUser)
         session.commit()
 
-def add_new_post(postID:int, chatID:int, text:str, senderNickname:str=None, date:datetime=None, location:list[str]=None, theme:str=None, targets:list[str]=None, token:float=None, tokenPrice:float=None, payload:str=None):
+def add_new_post(postID:int, chatID:int, 
+                 text:str,
+                senderNickname:str=None, 
+                date:datetime=None, 
+                location:list[str]=None, 
+                theme:str=None, 
+                targets:list[str]=None, 
+                token:float=None, 
+                tokenPrice:float=None, 
+                payload:str=None,
+                time:str=None,
+                organizer:str=None,
+                language:str=None,
+                event:int=None,
+                price:float=None,
+                ):
     with Session() as session:
         newPost=Post(
+            time=time,
+            organizer=organizer,
+            language=language,
+            event=event,
+            price=price,
+
             created_date=datetime.now(),
             post_id=postID,
             chat_id=chatID,
@@ -102,6 +133,18 @@ def add_new_post(postID:int, chatID:int, text:str, senderNickname:str=None, date
         session.add(newPost)
         session.commit()
 
+def add_statistick(userID:int, queryText:str, theme:str, queryArray:list[str], targets:list[str]):
+    with Session() as session:
+        newStatistick=Statistick(
+            created_date=datetime.now(),
+            nickname=userID,
+            query_text=queryText,
+            theme=theme,
+            query_array=queryArray,
+            targets=targets,
+        )
+        session.add(newStatistick)
+        session.commit()
 
 
 def update_targets_for_user(userID:int, targets:list[str]):
@@ -122,7 +165,7 @@ def update_model(userID:int, model:str):
         session.query(User).filter(User.id==userID)\
             .update({User.model:model})
         session.commit()
-        
+
 def update_token_for_user(userID:int, token:float):
     with Session() as session:
         user=session.query(User).filter(User.id==userID).one()

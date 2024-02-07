@@ -302,6 +302,7 @@ async def message(msg: Message, state: FSMContext):
     # await msg.answer(f"Твой ID: {msg.from_user.id}")
     dateNow = datetime.now().strftime("%d.%m.%Y")
     await msg.answer(answer)
+    postgreWork.add_statistick(userName, messText, answer)
     lst=[userName,dateNow, messText, answer, 'gpt']
     sheet.insert_cell(data=lst)
     # await msg.send_copy(chat_id=400923372)

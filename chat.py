@@ -109,6 +109,7 @@ class GPT():
 
   
   def answer_assistant(self,text, temp = 1, userID:int=0):
+    global USERS_THREADS
     assistant ='asst_ljJQn6stjMsgIcGj4PkMvxnD' 
     # openai.('')
     # Upload a file with an "assistants" purpose
