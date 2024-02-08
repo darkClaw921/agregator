@@ -54,9 +54,9 @@ async def new_message_listener(event):
     text=event.message.text
 
     userSendID=event.message.from_id
-    try:
-        userSendNickname=event.message.sender.username
-    except:
+    
+    userSendNickname=event.message.sender.username
+    if userSendNickname is None or userSendNickname=='': 
         pprint(event.message)
         userSendNickname=event.message.user.username
     print(text)
@@ -116,7 +116,10 @@ async def new_message_listener(event):
         event = 0
     elif event=='1':
         event=1
-    
+
+    if organizer == 'None' or organizer=='0': 
+        organizer=userSendNickname
+
     print('добавляем пост')
     postgreWork.add_new_post(
         date=date,

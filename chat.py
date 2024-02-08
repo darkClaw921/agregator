@@ -154,7 +154,7 @@ class GPT():
         thread_id=thread.id,
         run_id=run.id
         )
-    
+     
     pprint(run.status)
 
     while run.status != 'completed':
@@ -163,7 +163,19 @@ class GPT():
             run_id=run.id
         )
         logger.debug(run.status)
+
+    run = client.beta.threads.runs.retrieve(
+      thread_id=thread.id,
+      run_id=run.id
+    )
+
+    pprint(run.usage)    
     
+    totalToken = run.usage['total_tokens']
+    #https://openai.com/pricing
+    tokenPrice = 0.002*(totalToken/1000)
+    print(totalToken)
+    # pprint(thread.__dict__)
     messages = client.beta.threads.messages.list(
         thread_id=thread.id
         )
@@ -175,7 +187,7 @@ class GPT():
     pprint(messages.data[0])
     logger.info(f'{messages.data[0].content[0].text.value=}')
     answerText = messages.data[0].content[0].text.value 
-    return answerText, 0, 0
+    return answerText, totalToken, tokenPrice
   
 
   #def answer(self, system, topic, temp = 1):    

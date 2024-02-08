@@ -10,11 +10,14 @@ load_dotenv()
 userName = os.environ.get('POSTGRES_USER')
 password = os.environ.get('POSTGRES_PASSWORD')
 db = os.environ.get('POSTGRES_DB')
+url = os.environ.get('POSTGRES_URL')
+
 print(f'{userName=}')
 print(f'{password=}')
 print(f'{db=}')
+
 # Создаем подключение к базе данных
-engine = create_engine(f'postgresql://{userName}:{password}@localhost:5432/{db}')
+engine = create_engine(f'postgresql://{userName}:{password}@{url}:5432/{db}')
 # engine = create_engine('mysql://username:password@localhost/games')
 
 
@@ -75,7 +78,10 @@ class Statistick(Base):
     theme=Column(String)
     query_array=Column(ARRAY(String))
     targets=Column(ARRAY(String))
-
+    
+    text=Column(String)
+    token=Column(Float)
+    token_price=Column(Float)
 
 Base.metadata.create_all(engine)
 
@@ -133,15 +139,25 @@ def add_new_post(postID:int, chatID:int,
         session.add(newPost)
         session.commit()
 
-def add_statistick(userID:int, queryText:str, theme:str, queryArray:list[str], targets:list[str]):
+def add_statistick(userName:str, queryText:str, 
+                   theme:str, 
+                   token:float,
+                   tokenPrice:float,
+                   text:str,
+                   queryArray:list[str]=[], 
+                   targets:list[str]=[],):
+    
     with Session() as session:
         newStatistick=Statistick(
             created_date=datetime.now(),
-            nickname=userID,
+            nickname=userName,
             query_text=queryText,
             theme=theme,
             query_array=queryArray,
             targets=targets,
+            token=token,
+            token_price=tokenPrice,
+            text=text,
         )
         session.add(newStatistick)
         session.commit()
@@ -209,3 +225,6 @@ def check_post(textPost:str)->bool:
             return True
         else:
             return False
+
+# a=get_posts()
+# print(a)

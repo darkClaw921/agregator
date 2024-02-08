@@ -228,10 +228,11 @@ async def message(msg: Message, state: FSMContext):
     typeModel = postgreWork.get_model(userID)
 
     if typeModel == 'assis':
-        answer=gpt.answer_assistant(messText,1,userID)[0]
+        answer, token, tokenPrice=gpt.answer_assistant(messText,1,userID)
         dateNow = datetime.now().strftime("%d.%m.%Y")
         await msg.answer(answer)
         lst=[userName,dateNow, messText, answer, 'assis']
+        postgreWork.add_statistick(userName=userName, text=messText, queryText=answer, token=token, tokenPrice=tokenPrice, theme='assis')
         sheet.insert_cell(data=lst)
         return 0
 
@@ -257,7 +258,10 @@ async def message(msg: Message, state: FSMContext):
     promt=gpt.load_prompt('https://docs.google.com/document/d/1oezrKsyGHXFie9BZxDLKVJwth8fZEcUq3jyZekL-oNo/edit?usp=sharing')
     promt=promt.replace('[dateNow]',date)
     # answer=gpt.answer_index(system=promt,topic=messText,history=history,search_index=model_index,verbose=False)
-    answer = gpt.answer(promt, history, 1)[0]
+    answer = gpt.answer(promt, history, 1)
+    token=answer[1]
+    tokenPrice=answer[2]
+    answer=answer[0]
     add_message_to_history(msg.chat.id, 'system', answer) 
     # answer=gpt.answer_index()
     # pprint(answer)
@@ -303,6 +307,9 @@ async def message(msg: Message, state: FSMContext):
     dateNow = datetime.now().strftime("%d.%m.%Y")
     await msg.answer(answer)
     postgreWork.add_statistick(userName, messText, answer)
+
+    postgreWork.add_statistick(userName=userName, text=messText, queryText=answer, token=token, tokenPrice=tokenPrice, theme='gpt')
+    
     lst=[userName,dateNow, messText, answer, 'gpt']
     sheet.insert_cell(data=lst)
     # await msg.send_copy(chat_id=400923372)
