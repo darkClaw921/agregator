@@ -50,15 +50,16 @@ chenalName = [-1001497691183,
 async def new_message_listener(event):
     # Обработка новых сообщений
     messageID=event.message.id
+    # try:
     chenalID=event.message.chat.id
     text=event.message.text
 
     userSendID=event.message.from_id
     
     userSendNickname=event.message.sender.username
-    if userSendNickname is None or userSendNickname=='': 
-        pprint(event.message)
-        userSendNickname=event.message.user.username
+    if userSendNickname is None:
+        pprint(event.message.__dict__)
+        userSendNickname=str(userSendID)
     print(text)
     print(userSendID)
     print(userSendNickname)
