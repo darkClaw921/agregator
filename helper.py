@@ -29,6 +29,20 @@ def parsetext(text):
     return date, time, theme, location
 
 
+def get_next_weekend():
+    today = datetime.today()
+    # 0 - понедельник, 1 - вторник, ..., 5 - суббота, 6 - воскресенье
+    day_of_week = today.weekday()
+    if day_of_week < 5:  # Если сегодня не выходной
+        # Находим ближайшую субботу
+        next_saturday = today + timedelta(days=(5 - day_of_week))
+    else:
+        # Если сегодня выходной, то возвращаем сегодняшнюю дату
+        next_saturday = today
+    return next_saturday.strftime("%d.%m.%Y")
+
+
+
 def extract_date(text):
     # date_pattern = r'\d{1,2}\s\w+'  # Matches the pattern "24 января"
     date_pattern = r'\d{1,2}\s(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)'
@@ -128,7 +142,7 @@ def convert_text_to_variables(text):
     event = 'None'
     print(text)
     for line in lines:
-        if line.startswith('Дата:'):
+        if line.startswith('Дата:') or line.startswith('Дата и время:'):
             try:
                 date = line.split(': ')[1]
             except: 
@@ -138,7 +152,7 @@ def convert_text_to_variables(text):
                 time = line.split(': ')[1]
             except:
                 time = '0'
-        elif line.startswith('Тема:'):
+        elif line.startswith('Тема:') or line.startswith('Категория мероприятия:'):
             topic = line.split(': ')[1]
         elif line.startswith('Локация:'):
             try:
@@ -244,7 +258,7 @@ def create_db2():
         'date': date,
         'time': time,
         'topic': topic,
-        'location': location,
+        'location': location.lower(),
         'cost': cost, 
         'organizer': organizer, 
         'language': language, 

@@ -1,5 +1,6 @@
 
 import chromadb 
+from pprint import pprint
 
 # Create a ChromaDB client
 client = chromadb.Client()
@@ -21,24 +22,30 @@ def add_to_collection(text,meta:dict):
     )
 
 
-def query(text, filter1:dict=None):
+def query(text, filter1:dict=None, result:int=2):
     val = sentence_transformer_ef([text])
     results = collection.query(
         query_embeddings=val,
     
-        n_results=5,
+        n_results=result,
         # where={"metadata_field": "is_equal_to_this"}, # optional filter по методанным
         where=filter1, # optional filter по методанным
         # where_document={"$contains":"search_string"}  # optional filter
     )
     return results
                       
-def prepare_query_chromadb(dict1:dict):
+def prepare_query_chromadb(dict1:dict)->list[dict]:
     allText=''
+    dic=[]
     metas=dict1['metadatas'][0]
-    for event in metas:
-        allText+=f"{event['text']}\n\n"
-    return allText
+    distance=dict1['distances'][0]
+    for event,distance1 in zip(metas, distance):
+        text=event['text']
+        distance=distance1
+        dic.append({'text':text,'distance':distance})
+        # pprint(dic)
+        # allText+=f"{event['text']}\n\n"
+    return dic
 # Query the collection for events on Thursday
 # results = collection.query(
 #     query_texts=["что в пятницу"],

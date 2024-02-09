@@ -35,8 +35,8 @@ import chromaDBwork
 from loguru import logger
 from workRedis import *
 # from calendarCreate import create_calendar
-from helper import create_db,convert_text_to_variables,create_db2
-from datetime import datetime
+from helper import create_db,convert_text_to_variables,create_db2,get_next_weekend
+from datetime import datetime,timedelta
 from workGS import Sheet
 import uuid
 import time
@@ -232,7 +232,9 @@ async def message(msg: Message, state: FSMContext):
         dateNow = datetime.now().strftime("%d.%m.%Y")
         await msg.answer(answer)
         lst=[userName,dateNow, messText, answer, 'assis']
-        postgreWork.add_statistick(userName=userName, text=messText, queryText=answer, token=token, tokenPrice=tokenPrice, theme='assis')
+        postgreWork.add_statistick(userName=userName, text=messText, 
+                                   queryText=answer, token=token, 
+                                   tokenPrice=tokenPrice, theme='assis')
         sheet.insert_cell(data=lst)
         return 0
 
@@ -253,7 +255,7 @@ async def message(msg: Message, state: FSMContext):
     # answer = gpt.answer(promtPreparePost,messagesList)
     
 
-    date=datetime.now().strftime("%d.%m.%Y")
+    date=datetime.now().strftime("%d.%m.%Y %A")
     # promt = f'Ты бот-помошник, который помогает пользователю найти мероприятие, которое ему подходит. Учитывай что сегодня {date}.  вот список мероприятий:'
     promt=gpt.load_prompt('https://docs.google.com/document/d/1oezrKsyGHXFie9BZxDLKVJwth8fZEcUq3jyZekL-oNo/edit?usp=sharing')
     promt=promt.replace('[dateNow]',date)
@@ -266,37 +268,109 @@ async def message(msg: Message, state: FSMContext):
     # answer=gpt.answer_index()
     # pprint(answer)
     exitText = answer.find('Закончил опрос: 1')
-    print(exitText)
+
+    print('',exitText)
     if exitText != -1:
+        distanceLimit=0.7
+        await msg.answer(answer)
         answer = answer.replace('Закончил опрос: 1','')
         
         date, time, topic, location, cost, organizer, language, event=convert_text_to_variables(answer)
-        meta={
-        'date': date,
-        # 'time': time,
-        # 'topic': topic,
-        'location': location,
-        # 'cost': cost, 
-        # 'organizer': organizer, 
-        # 'language': language, 
-        # 'event': event
-        }        
+        meta={}
+
+        date=date.strip()
+        date=date.lower()
+
+        if date == '' or date == 'None': 
+            try:
+                date = datetime.now().strftime("%d.%m.%Y")
+            except:
+                date = datetime.now().strftime("%d.%m")
+        
+        if date in ['завтра']:
+            date = datetime.now()+timedelta(days=1)
+            date = date.strftime("%d.%m.%Y")
+        
+        if date in ['сегодня']:
+            date = datetime.now().strftime("%d.%m.%Y")
+        
+        if date in ['послезавтра']:
+            date = datetime.now()+timedelta(days=2)
+            date = date.strftime("%d.%m.%Y")
+
+        if date in ['выходные']:
+            date=get_next_weekend()
+            
+            
+
+
+        meta['date']=date
+        location=location.lower()
+        location=location.strip()
+
+        if location not in ['None','','не указано','неизвестно','0','не указано','none']:
+            location=location.lower()
+            location=location.strip()
+            meta['location']=location
+        
+
         # print(theme)
         pprint(meta)
         print(topic)
         try:
-            events=chromaDBwork.query(topic,meta)
+            topic1=topic.lower()
+            if topic1 in ['None','','не указано','неизвестно','0', 
+                         'Все категории','все категории',
+                         'все','все мероприятия',
+                         'не указана','none']:
+                events=chromaDBwork.query(topic, meta, result=5)
+                distanceLimit=2
+                await msg.answer('Извините нет подходящих но зато есть:')
+            else:
+                events=chromaDBwork.query(topic,meta)
+            pprint(events)
+            
             events = chromaDBwork.prepare_query_chromadb(events)
+            # if events is None or events=='': events='Мероприятий на эту тематику не найдено'
+            pprint(events)
+            
         except Exception as e:
             print(e)
             events='Мероприятий не найдено'
         # print(events)        
         
         # promt.replace('[dateNow]',date)
-        promt+=f'\n\n{events}'
-        answer = gpt.answer(promt, history, 1)[0]
-        add_message_to_history(msg.chat.id, 'system', answer) 
-        await msg.answer(answer)
+        # promt+=f'\n\n{events}'
+        # answer = gpt.answer(promt, history, 1)[0]
+        # add_message_to_history(msg.chat.id, 'system', answer) 
+        countEvent=0        
+        pprint(events)
+        for event in events:
+            try:
+                distanseIS=event['distance']>=distanceLimit
+            except:
+                await msg.answer("""Прямо сейчас я не нашел мероприятий, соответствующих твоим пожеланиям😔 
+
+Можем попробовать другие критерии. Что бы тебе хотелось еще найти?""")
+                # distanseIS=False
+                return 0
+                # continue 
+            if distanseIS:
+                print('Пропускаем мероприятие с большим расстоянием')
+                continue
+            try:
+                await msg.answer(event['text'], parse_mode='Markdown')
+            except Exception as e:
+                await msg.answer(str(e))
+
+            countEvent+=1
+
+        if countEvent==0:
+            await msg.answer("""Прямо сейчас я не нашел мероприятий, соответствующих твоим пожеланиям😔 
+
+Можем попробовать другие критерии. Что бы тебе хотелось еще найти?""")   
+
+        # await msg.answer(events, parse_mode='Markdown')
 
         # await msg.answer('Все мероприятия закончились')
         return 0
@@ -306,9 +380,11 @@ async def message(msg: Message, state: FSMContext):
     # await msg.answer(f"Твой ID: {msg.from_user.id}")
     dateNow = datetime.now().strftime("%d.%m.%Y")
     await msg.answer(answer)
-    postgreWork.add_statistick(userName, messText, answer)
+   
 
-    postgreWork.add_statistick(userName=userName, text=messText, queryText=answer, token=token, tokenPrice=tokenPrice, theme='gpt')
+    postgreWork.add_statistick(userName=userName, text=messText, 
+                               queryText=answer, token=token, 
+                               tokenPrice=tokenPrice, theme='gpt')
     
     lst=[userName,dateNow, messText, answer, 'gpt']
     sheet.insert_cell(data=lst)

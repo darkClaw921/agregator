@@ -30,7 +30,7 @@ client.start()
 chenalName = [-1001497691183,
               -1001481640229,
               -1001322025774,
-              -1002010911633,
+            #   -1002010911633,
               -1001503673245,
               -1001703113785,
               -1001361144761,
@@ -83,8 +83,8 @@ async def new_message_listener(event):
     # 1/0
     chenalID=event.message.chat.id
     print(chenalID)
-    if chenalID == 2010911633:
-        await client.send_message(-1002010911633, message='Это мероприятие!',reply_to=event.message)
+    # if chenalID == 2010911633:
+        # await client.send_message(-1002010911633, message='Это мероприятие!',reply_to=event.message)
         
     messagesList = [
       {"role": "user", "content": text}
@@ -97,8 +97,8 @@ async def new_message_listener(event):
     promt=promt.replace('[dateNow]',dateNow)
     answer, allToken, allPrice = gpt.answer(promt,messagesList)
     pprint(answer)
-    if chenalID == 2010911633:
-        await client.send_message(-1002010911633, message=answer,reply_to=event.message)
+    # if chenalID == 2010911633:
+        # await client.send_message(-1002010911633, message=answer,reply_to=event.message)
 
     # messageID=event.message.id
     # chenalID=event.message.chat.id
