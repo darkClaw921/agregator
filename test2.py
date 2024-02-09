@@ -54,9 +54,11 @@ async def new_message_listener(event):
     chenalID=event.message.chat.id
     text=event.message.text
 
-    userSendID=event.message.from_id
-    
-    userSendNickname=event.message.sender.username
+    userSendID=event.message.from_id.user_id
+    try:
+        userSendNickname=event.message.sender.username
+    except:
+        userSendNickname=None
     if userSendNickname is None:
         pprint(event.message.__dict__)
         userSendNickname=str(userSendID)
@@ -105,7 +107,8 @@ async def new_message_listener(event):
     if postIsAdd: return 0
     date, time, topic, location, cost, organizer, language, event=convert_text_to_variables(answer)
     
-    if event == 0: return 0    
+    if event == 0: return 0   
+    date=datetime.strptime(date, "%d.%m.%Y") 
     if date == 'None' or date=='0': 
         try:
             date = datetime.now().strftime("%d.%m.%Y")
