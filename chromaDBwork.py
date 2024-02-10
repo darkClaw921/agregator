@@ -24,12 +24,19 @@ def add_to_collection(text,meta:dict):
 
 def query(text, filter1:dict=None, result:int=2):
     val = sentence_transformer_ef([text])
+    if len(filter1)>1:
+        filt={'$and':[]}
+        for key, value in filter1.items():
+            filt['$and'].append({key: value})        
+    else:
+        filt=filter1
     results = collection.query(
         query_embeddings=val,
     
         n_results=result,
         # where={"metadata_field": "is_equal_to_this"}, # optional filter по методанным
-        where=filter1, # optional filter по методанным
+        where=filt, # optional filter по методанным
+    
         # where_document={"$contains":"search_string"}  # optional filter
     )
     return results

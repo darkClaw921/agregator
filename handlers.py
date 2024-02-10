@@ -271,7 +271,7 @@ async def message(msg: Message, state: FSMContext):
 
     print('',exitText)
     if exitText != -1:
-        distanceLimit=0.7
+        distanceLimit=0.65
         await msg.answer(answer)
         answer = answer.replace('Закончил опрос: 1','')
         
@@ -281,7 +281,7 @@ async def message(msg: Message, state: FSMContext):
         date=date.strip()
         date=date.lower()
 
-        if date == '' or date == 'None': 
+        if date == '' or date == 'None' or date == '0' or date=='?': 
             try:
                 date = datetime.now().strftime("%d.%m.%Y")
             except:
@@ -308,7 +308,7 @@ async def message(msg: Message, state: FSMContext):
         location=location.lower()
         location=location.strip()
 
-        if location not in ['None','','не указано','неизвестно','0','не указано','none']:
+        if location not in ['None','','не указано','неизвестно','0','не указана','none','?']:
             location=location.lower()
             location=location.strip()
             meta['location']=location
@@ -323,11 +323,11 @@ async def message(msg: Message, state: FSMContext):
                          'Все категории','все категории',
                          'все','все мероприятия',
                          'не указана','none']:
-                events=chromaDBwork.query(topic, meta, result=5)
+                events=chromaDBwork.query(text=topic, filter1=meta, result=5)
                 distanceLimit=2
                 await msg.answer('Извините нет подходящих но зато есть:')
             else:
-                events=chromaDBwork.query(topic,meta)
+                events=chromaDBwork.query(text=topic,filter1=meta)
             pprint(events)
             
             events = chromaDBwork.prepare_query_chromadb(events)
@@ -359,7 +359,9 @@ async def message(msg: Message, state: FSMContext):
                 print('Пропускаем мероприятие с большим расстоянием')
                 continue
             try:
-                await msg.answer(event['text'], parse_mode='Markdown')
+                event['text']=event['text'].replace('\xa0','')
+                await msg.answer(event['text'], parse_mode='HTML')
+
             except Exception as e:
                 await msg.answer(str(e))
 

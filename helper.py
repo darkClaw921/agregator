@@ -257,7 +257,7 @@ def create_db2():
         'id': pos['id'],
         'date': date,
         'time': time,
-        'topic': topic,
+        'topic': topic.lower(),
         'location': location.lower(),
         'cost': cost, 
         'organizer': organizer, 
