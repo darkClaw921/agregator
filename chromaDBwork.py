@@ -12,9 +12,10 @@ sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFuncti
 
 collection = client.get_or_create_collection(name="my_collection", embedding_function=sentence_transformer_ef)
 
-def add_to_collection(text,meta:dict):
+
+def add_to_collection(text,meta:dict, collectionName:str="my_collection"):
     val = sentence_transformer_ef([text])
-    collection = client.get_or_create_collection(name="my_collection", embedding_function=sentence_transformer_ef)
+    collection = client.get_or_create_collection(name=collectionName, embedding_function=sentence_transformer_ef)
     collection.add(
         embeddings=val,
         metadatas=[meta],
@@ -22,8 +23,20 @@ def add_to_collection(text,meta:dict):
     )
 
 
-def query(text, filter1:dict=None, result:int=2):
+def query(text, filter1:dict=None, result:int=2, collectionName:str="my_collection"):
     val = sentence_transformer_ef([text])
+    collection = client.get_or_create_collection(name=collectionName, embedding_function=sentence_transformer_ef)
+
+    # is None не работает
+    try:
+        len(filter1)>1
+    except Exception as e:
+        results = collection.query(
+            query_embeddings=val,
+            n_results=result,)
+        return results
+    
+    print(f'{filter1=}')
     if len(filter1)>1:
         filt={'$and':[]}
         for key, value in filter1.items():
@@ -49,7 +62,7 @@ def prepare_query_chromadb(dict1:dict)->list[dict]:
     for event,distance1 in zip(metas, distance):
         text=event['text']
         distance=distance1
-        dic.append({'text':text,'distance':distance})
+        dic.append({'text':text,'distance':distance, 'theme':event['topic'],'themeSearch':event['themeSearch'],'hashtags':event['hashtags']})
         # pprint(dic)
         # allText+=f"{event['text']}\n\n"
     return dic

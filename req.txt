@@ -14,3 +14,4 @@ ipywidgets
 tiktoken
 loguru
 gspread
+langchain-openai

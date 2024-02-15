@@ -4,6 +4,7 @@ import requests
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.text_splitter import CharacterTextSplitter
+from operator import itemgetter
 
 import ipywidgets as widgets
 
@@ -17,6 +18,11 @@ import tiktoken
 import sys
 from loguru import logger
 from pprint import pprint
+from langchain_core.tools import tool
+from langchain_openai import ChatOpenAI
+from langchain.output_parsers import JsonOutputToolsParser
+from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
+from langchain_core.messages import HumanMessage, AIMessage
 
 
 key = os.environ.get('OPENAI_API_KEY')
@@ -34,24 +40,75 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-promtPreparePost="""
-Найди все упомянутые даты, время, тему, и локацию в тексте. Выпиши их, каждый с новой строки. Пример результата: Дата: 26.01
-Время: 11:00
-Тема: Как девушкам реализовать рост в доходе Х5, через уверенность, проявленность и эффективные действия
-Локация: Чангу.  Если в тексте нет какой-то информации , верни 0 для этой информации.
-Если тема не указана то напиши тему сам на основе переденного текста. Обязательно укажи тему.
-Если дата указана в формате  26 января то переведи ее в формат {день}.{месяц}. Например: 26.01
-И проверь является ли этот текст афишой на мероприятие. В афише есть названия мероприяти и дата/время проведения.
-Если текст похож на афишу то добавь в конце Мероприятие: 1, если нет то Мероприятие: 0. Обязательно укажи Мероприятие.
-
-Вот текст:
-"""
 USERS_THREADS = {}
+
+# @tool
+# def count_emails(last_n_days: int) -> int:
+#     """Multiply two integers together."""
+#     return last_n_days * 2
+
+
+# @tool
+# def send_email(message: str, recipient: str) -> str:
+#     "Add two integers."
+#     return f"Successfully sent email to {recipient}."
+
+
+@tool(return_direct=True)
+def find_events(theme: str, location: str, date: str) -> str:
+    "поиск мероприятий в базе по theme, location и date."
+    return f"Вот что я нашел по вашему запросу: {theme} {location} {date}."
+
+
+tools = [find_events]
+modelTools = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0).bind_tools(tools)
+
+def call_tool(tool_invocation: dict) -> Runnable:
+    """Function for dynamically constructing the end of the chain based on the model-selected tool."""
+    tool_map = {tool.name: tool for tool in tools}
+    tool = tool_map[tool_invocation["type"]]
+    return RunnablePassthrough.assign(output=itemgetter("args") | tool)
+
+call_tool_list = RunnableLambda(call_tool).map()
+# pprint(call_tool_list)
+# pprint(modelTools)
+# pprint(JsonOutputToolsParser())
+
+chain = modelTools | JsonOutputToolsParser() | call_tool_list
+# a = chain.invoke("сколько электронных писем я получил за последние 5 дней?")
+# a = chain.invoke("отправь писмо на адрес datkclaw@yandex.ru")
+# a = chain.invoke("Send sally@gmail.com an email saying 'What's up homie")
+# a = chain.invoke("Есть что-нибудь на завтра в Москве по танцам?")
+# history="""Клиент: привет, я хочу узнать о мероприятии на завтра 
+# Ассистент: Здравствуйте, уточните пожалуйста, в каком городе вы хотите найти мероприятие?
+# Клиент: Бали
+# Ассистент: какая тема мероприятия вас интересует?
+# Клиент: танцы"""
+history="""Клиент: привет, я хочу узнать о мероприятии на завтра по танцам"""
+# a=chain.invoke(
+#     [
+#         HumanMessage(
+#             content="привет, я хочу узнать о мероприятии на завтра"
+#         ),
+#         AIMessage(content="Здравствуйте, уточните пожалуйста, в каком городе вы хотите найти мероприятие?"),
+#         HumanMessage(content="Бали"),
+#         AIMessage(content="какая тема мероприятия вас интересует?"),
+#         HumanMessage(content="танцы"),
+#     ]
+# )
+a=chain.invoke(
+  history
+)
+print(a)
+
+# 1/0
 class GPT():
   modelVersion = ''
   def __init__(self,modelVersion:str = 'gpt-3.5-turbo-16k'):
     self.modelVersion = modelVersion
     pass
+
+  
 
  
   def load_search_indexes(self, text:str = '') -> str:
@@ -253,7 +310,28 @@ See https://github.com/openai/openai-python/blob/main/chatml.md for information 
     return "\n".join(lines)
 
   
- 
+  def asnwer_tools(self, history:list, temp = 1):
+    
+    historyText=''
+    for i in history:
+      if i['role'] == 'user':
+        historyText+= f"Клиент: {i['content']}\n"
+      if i['role'] == 'system':
+        historyText+= f"Ассистент: {i['content']}\n"
+
+    answer=chain.invoke(
+      historyText
+    )
+    print('========================================================')
+    pprint(answer)
+    
+    answer=answer
+
+    # if answer['type'] == 'find_events':
+    #   answerArgs = answer["args"]
+    # answerText = answer['output']
+
+    return answer
 
   def answer_index(self, system, topic, history:list, search_index, temp = 1, verbose = 0):
     

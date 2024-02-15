@@ -114,6 +114,7 @@ def add_new_post(postID:int, chatID:int,
                 language:str=None,
                 event:int=None,
                 price:float=None,
+                
                 ):
     with Session() as session:
         newPost=Post(
@@ -194,6 +195,12 @@ def update_token_price_for_user(userID:int, tokenPrice:float):
         user.all_token_price+=tokenPrice
         session.commit()
 
+def update_post(postID:int, theme:str, location:list[str], targets:list[str]):
+    with Session() as session:
+        session.query(Post).filter(Post.id==postID)\
+            .update({Post.theme:theme, Post.location:location,
+                     Post.targets:targets}) 
+        session.commit()
 
 
 def get_model(userID:int)->str:
@@ -205,8 +212,25 @@ def get_posts():
     with Session() as session:
         posts=session.query(Post).filter(Post.token != None,
                                         #  Post.created_date==(Post.created_date>=(datetime.now()-timedelta(days=2)))).all()
-                                         Post.created_date>=(datetime.now()-timedelta(days=2))).all()
+                                         Post.date>=(datetime.now()-timedelta(days=1))).all()
         return posts
+# ).all()
+def get_posts_for_targets(targets:list[str]):
+    with Session() as session:
+        postsAll=[]
+        tempList=[]
+        for target in targets:
+            posts=session.query(Post).filter(Post.token != None,
+                                         Post.targets.any(target),
+                                        #  Post.targets.contains(targets),
+                                         Post.date>=(datetime.now()-timedelta(days=1))).all()
+            for post in posts:
+                if post.id not in tempList:
+                    postsAll.append(post)
+                    tempList.append(post.id)
+                
+
+        return postsAll
 
 def get_payload(userID:int)->str:
     with Session() as session:
@@ -218,6 +242,8 @@ def get_targets_for_user(userID)->list[str]:
         user=session.query(User).filter(User.id==userID).one()
         return user.targets
 
+
+
 def check_post(textPost:str)->bool:
     with Session() as session:
         posts=session.query(Post).filter(Post.text==textPost).all()
@@ -226,5 +252,10 @@ def check_post(textPost:str)->bool:
         else:
             return False
 
+# a= get_posts_for_targets(['танцы','бизнес'])
+# a= get_posts_for_targets(['танцы','бизнес'])
+# pprint(len(a))
+# a= get_posts_for_targets(['танцы'])
+# pprint(len(a))
 # a=get_posts()
 # print(a)

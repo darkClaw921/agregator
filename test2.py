@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-from chat import GPT, promtPreparePost
+from chat import GPT
 from pprint import pprint
 import postgreWork
 from helper import check_pattern_count,convert_text_to_variables
@@ -92,7 +92,7 @@ async def new_message_listener(event):
     url='https://docs.google.com/document/d/1riRchaMaJC27ikxBx_02W2Z7GANDnFswzTUHy49qaqI/edit?usp=sharing'
     promt=gpt.load_prompt(url)
     
-    dateNow = datetime.now().strftime("%d.%m.%Y")
+    dateNow = datetime.now().strftime("%d.%m.%Y %A")
     
     promt=promt.replace('[dateNow]',dateNow)
     answer, allToken, allPrice = gpt.answer(promt,messagesList)
@@ -105,7 +105,7 @@ async def new_message_listener(event):
     postIsAdd=postgreWork.check_post(text)
     
     if postIsAdd: return 0
-    date, time, topic, location, cost, organizer, language, event=convert_text_to_variables(answer)
+    date, time, topic, location, cost, organizer, language, event, hashtags=convert_text_to_variables(answer)
     
     if event == 0: return 0   
     date=datetime.strptime(date, "%d.%m.%Y") 
@@ -124,7 +124,14 @@ async def new_message_listener(event):
     if organizer == 'None' or organizer=='0': 
         organizer=userSendNickname
 
+    if hashtags == 'None' or hashtags=='0' or hashtags==None: 
+        hashtags=['']
+
     print('добавляем пост')
+    
+    for i, a in enumerate(hashtags):
+        hashtags[i]=a.lower() 
+
     postgreWork.add_new_post(
         date=date,
         time=time,
@@ -140,7 +147,9 @@ async def new_message_listener(event):
         payload=answer,
         token=allToken,
         tokenPrice=allPrice,
-        senderNickname=userSendNickname, 
+        senderNickname=userSendNickname,
+        targets=hashtags,
+         
     )
     #chenalID записывается без -100 в начале -1002010911633
 
