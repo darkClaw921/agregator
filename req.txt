@@ -15,3 +15,4 @@ tiktoken
 loguru
 gspread
 langchain-openai
+yandexcloud

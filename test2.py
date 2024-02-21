@@ -136,7 +136,7 @@ async def new_message_listener(event):
         date=date,
         time=time,
         theme=topic,
-        location=[location],
+        location=[location.lower()],
         price=cost,
         organizer=organizer,
         language=language,
@@ -149,6 +149,7 @@ async def new_message_listener(event):
         tokenPrice=allPrice,
         senderNickname=userSendNickname,
         targets=hashtags,
+        location_str=location.lower(),
          
     )
     #chenalID записывается без -100 в начале -1002010911633

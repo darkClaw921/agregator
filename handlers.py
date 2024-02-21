@@ -35,12 +35,13 @@ import chromaDBwork
 from loguru import logger
 from workRedis import *
 # from calendarCreate import create_calendar
-from helper import create_db,convert_text_to_variables,create_db2,get_next_weekend,find_and_format_date,find_patterns_date
+from helper import create_db,convert_text_to_variables,create_db2,get_next_weekend,find_and_format_date,find_patterns_date,create_db_for_user
 from datetime import datetime,timedelta
 from workGS import Sheet
 import uuid
 import time
 import speech_recognition as sr
+from promt import clasificatorPromt
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -50,7 +51,7 @@ gpt=GPT()
 
 
 # textAllPosts=create_db()
-create_db2()
+# create_db2()
 # model_index=gpt.load_search_indexes(textAllPosts)
 
 class Form(StatesGroup):
@@ -269,27 +270,69 @@ async def message(msg: Message, state: FSMContext):
     token=answer[1]
     tokenPrice=answer[2]
     answer=answer[0]
-    add_message_to_history(msg.chat.id, 'system', answer) 
+    
     # answer=gpt.answer_index()
     # pprint(answer)
     # exitText = answer.find('Закончил опрос: 1')
     
     answerTools=gpt.asnwer_tools(history=history)
-    pprint(answerTools)
+    # pprint(answerTools)
     if answerTools != []:
+        # TODO: Добавить обработку таргетов
+        promt1=gpt.load_prompt('https://docs.google.com/document/d/1IYhd2AHfcw7jwvOO1qbvgFAXVGnYq-ddpj_LH8_oe_A/edit?usp=sharing')
+        asnwerTargets=gpt.answer(promt1, history, 1)
+        # asnwerTargets=gpt.answer_yandex(promt1, history, 1)
+        pprint(asnwerTargets)
+        # location=answerTools[1].lower()
+        location = answerTools[0]['output']['location']
+        date = answerTools[0]['output']['date']
+        theme = answerTools[0]['output']['theme']
+
+        targets=asnwerTargets[0].split(',')
+        targets=[i.strip() for i in targets]
+        print(f'{targets=}')
+        print(f'{location=}')
+        
+        postgreWork.add_statistick(userName=userName, text=messText,
+                                   token=asnwerTargets[1], tokenPrice=asnwerTargets[2],
+                                    targets=targets, theme='targets', queryText=messText)
+
+        match answerTools[0]['output']:
+            case {'location': str() as location}:
+                location=location.lower()
+                posts=postgreWork.get_posts_for_targets_and_location(targets, location)
+                print(f'есть локация')
+            case {'location': None}:
+                posts=postgreWork.get_posts_for_targets(targets)
+            case _:
+                print(f'нет локации')
+
+         
+        # if location != 'None' or location != '0' or location != '' or location is not None:
+            
+        # else: 
+        
+
+        create_db_for_user(str(userID), posts)
+        
         distanceLimit=2 
         answerTools=answerTools[0]
-        date = answerTools['args']['date']
-        date=date.strip()
-        date=date.lower()
-        date=find_patterns_date(date)
+        # date = answerTools['args']['date']
+        try:
+            date=date.strip()
+            date=date.lower()
+            date=find_patterns_date(date)
+        except:
+            date=None
 
         
+        
         meta={'date':date}
+        pprint(meta)
         if date == 'None' or date=='0' or date=='' or date is None:
-            events=chromaDBwork.query(text=answerTools['args']['theme'], result=5)
+            events=chromaDBwork.query(text=theme, result=5, collectionName=str(userID))
         else:
-            events=chromaDBwork.query(text=answerTools['args']['theme'], filter1=meta, result=5)
+            events=chromaDBwork.query(text=theme, filter1=meta, result=5, collectionName=str(userID))
         events = chromaDBwork.prepare_query_chromadb(events)
         pprint(events)
 
@@ -304,9 +347,11 @@ async def message(msg: Message, state: FSMContext):
                 
             except Exception as e:
                 print(e)
-                await msg.answer("""Прямо сейчас я не нашел мероприятий, соответствующих твоим пожеланиям😔 
+                answerText="""Прямо сейчас я не нашел мероприятий, соответствующих твоим пожеланиям😔 
 
-Можем попробовать другие критерии. Что бы тебе хотелось еще найти?""")
+Можем попробовать другие критерии. Что бы тебе хотелось еще найти?"""
+                await msg.answer(answerText)  
+                add_message_to_history(msg.chat.id, 'system', answerText)
                 # distanseIS=False
                 return 0
                 # continue 
@@ -324,13 +369,17 @@ async def message(msg: Message, state: FSMContext):
             countEvent+=1
 
         if countEvent==0:
-            await msg.answer("""Прямо сейчас я не нашел мероприятий, соответствующих твоим пожеланиям😔 
+            answerText="""Прямо сейчас я не нашел мероприятий, соответствующих твоим пожеланиям😔 
 
-Можем попробовать другие критерии. Что бы тебе хотелось еще найти?""")  
+Можем попробовать другие критерии. Что бы тебе хотелось еще найти?"""
+            await msg.answer(answerText)  
+            add_message_to_history(msg.chat.id, 'system', answerText)
+        chromaDBwork.delete_collection(str(userID))
+        add_message_to_history(msg.chat.id, 'system', "Мероприятие 1") 
         return 0
    
 
-
+    add_message_to_history(msg.chat.id, 'system', answer) 
     # await msg.answer(f"Твой ID: {msg.from_user.id}")
     dateNow = datetime.now().strftime("%d.%m.%Y")
     await msg.answer(answer)
@@ -340,42 +389,45 @@ async def message(msg: Message, state: FSMContext):
                                queryText=answer, token=token, 
                                tokenPrice=tokenPrice, theme='gpt')
     
-    lst=[userName,dateNow, messText, answer, 'gpt']
-    sheet.insert_cell(data=lst)
+    # lst=[userName,dateNow, messText, answer, 'gpt']
+    # sheet.insert_cell(data=lst)
     # await msg.send_copy(chat_id=400923372)
     # await bot.send_message(chat_id=400923372, text=f"Твой ID: {msg.from_user.id}")    
 
 
 if __name__ == '__main__':
-    posts=postgreWork.get_posts()
-    date=datetime.now().strftime("%d.%m.%Y %A")
-    url='https://docs.google.com/document/d/1riRchaMaJC27ikxBx_02W2Z7GANDnFswzTUHy49qaqI/edit?usp=sharing'
-    promt=gpt.load_prompt(url)
-    promt=promt.replace('[dateNow]',date)
+    # posts=postgreWork.get_posts()
+    # date=datetime.now().strftime("%d.%m.%Y %A")
+    # url='https://docs.google.com/document/d/1riRchaMaJC27ikxBx_02W2Z7GANDnFswzTUHy49qaqI/edit?usp=sharing'
+    # promt=gpt.load_prompt(url)
+    # promt=promt.replace('[dateNow]',date)
 
-    for post in posts:
+    # for post in posts:
         
-    # promt = f'Ты бот-помошник, который помогает пользователю найти мероприятие, которое ему подходит. Учитывай что сегодня {date}.  вот список мероприятий:'
+    # # promt = f'Ты бот-помошник, который помогает пользователю найти мероприятие, которое ему подходит. Учитывай что сегодня {date}.  вот список мероприятий:'
         
-        # promtUrl=''
-        messagesList = [
-      {"role": "user", "content": post.text}
-      ]
-        answer=gpt.answer(promt,messagesList)[0]
-        # print(answer)
-        date, time, topic, location, cost, organizer, language, event, hashtags=convert_text_to_variables(answer)
-        theme = topic
-        location=[location.lower()]
+    #     # promtUrl=''
+    #     messagesList = [
+    #   {"role": "user", "content": post.text}
+    #   ]
+    #     answer=gpt.answer(promt,messagesList)[0]
+    #     # print(answer)
+    #     date, time, topic, location, cost, organizer, language, event, hashtags=convert_text_to_variables(answer)
+    #     theme = topic
+    #     location=[location.lower()]
 
-        print(f'{theme=}')
-        print(f'{location=}')
-        # print(f'{post.__dict__=}')
-        print(f'{hashtags=}')
-        for i, a in enumerate(hashtags):
-            hashtags[i]=a.lower()
+    #     print(f'{theme=}')
+    #     print(f'{location=}')
+    #     # print(f'{post.__dict__=}')
+    #     print(f'{hashtags=}')
+    #     for i, a in enumerate(hashtags):
+    #         hashtags[i]=a.lower()
             
-        # 1/0
-        postgreWork.update_post(post.id,theme=theme,location=location, targets=hashtags)
+    #     # 1/0
+    #     postgreWork.update_post(post.id,theme=theme,location=location, targets=hashtags)
+
+
+
 
     # from aiogram import executor
     # executor.start_polling(router)

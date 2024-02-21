@@ -24,10 +24,16 @@ from langchain.output_parsers import JsonOutputToolsParser
 from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 from langchain_core.messages import HumanMessage, AIMessage
 
+from langchain.schema import HumanMessage, SystemMessage
+from langchain_community.chat_models import ChatYandexGPT
 
 key = os.environ.get('OPENAI_API_KEY')
+YC_IAM_TOKEN = os.environ.get('YC_IAM_TOKEN')
 client = OpenAI(api_key=key,)
-                   
+
+chat_model = ChatYandexGPT(folder_id='b1g83bovl5hjt7cl583v', model_uri='gpt://b1g83bovl5hjt7cl583v/yandexgpt')       
+
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -39,9 +45,18 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+from promt import clasificatorPromt
 
 USERS_THREADS = {}
+# from langchain.memory import PostgresChatMessageHistory
+# history = PostgresChatMessageHistory(
+#     connection_string="postgresql://postgres:mypassword@localhost/chat_history",
+#     session_id="foo",
+# )
+# history.aget_messages()
+# history.add_user_message("hi!")
 
+# history.add_ai_message("whats up?")
 # @tool
 # def count_emails(last_n_days: int) -> int:
 #     """Multiply two integers together."""
@@ -53,15 +68,33 @@ USERS_THREADS = {}
 #     "Add two integers."
 #     return f"Successfully sent email to {recipient}."
 
+# def find_events(theme: str, location: str, date: str) -> str:
+@tool('conduct_dialogue',return_direct=True)
+def conduct_dialogue(text:str) -> str:
+   """Ведет диалог с пользователем пока он не укажет тему, локацию и дату мероприятия."""
+   return {'text': text}
 
-@tool(return_direct=True)
-def find_events(theme: str, location: str, date: str) -> str:
-    "поиск мероприятий в базе по theme, location и date."
-    return f"Вот что я нашел по вашему запросу: {theme} {location} {date}."
+@tool('add_new_event',return_direct=True)
+def add_new_event(text:str) -> str:
+    """Добавляет новое мероприятие в базу если пользователь является организатором и хочет добавить мероприятие"""
+    # """поиск мероприятий в базе по theme, date. Учитывает последний запрос пользователя."""
+    print(f"Вот что я нашел по вашему запросу: {text}")
+    return {'text': text}
 
 
-tools = [find_events]
-modelTools = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0).bind_tools(tools)
+@tool('find_events',return_direct=True)
+def find_events(theme: str, location: str=None, date: str=None) -> str:
+    """поиск мероприятий в базе только если пользователь указал тему(theme), локацию(location) и дату(date)"""
+        # """поиск мероприятий в базе по theme, date. Учитывает последний запрос пользователя."""
+    print(f"Вот что я нашел по вашему запросу: {theme} {location} {date}.")
+    return {'theme': theme, 'location': location, 'date': date}
+
+
+
+
+tools = [conduct_dialogue, add_new_event, find_events]
+# modelTools = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0).bind_tools(tools)
+modelTools = ChatOpenAI(model="gpt-4-turbo-preview", temperature=1).bind_tools(tools)
 
 def call_tool(tool_invocation: dict) -> Runnable:
     """Function for dynamically constructing the end of the chain based on the model-selected tool."""
@@ -248,12 +281,13 @@ class GPT():
   
 
   #def answer(self, system, topic, temp = 1):    
-  def answer(self, system, topic:list, temp = 1):
+  def answer(self, system, topic:list, temp = 1, modelVersion='gpt-4'):
     """messages = [
       {"role": "system", "content": system},
       {"role": "user", "content": topic}
       ]
     """
+
     messages = [
       {"role": "system", "content": system },
       #{"role": "user", "content": topic}
@@ -261,7 +295,8 @@ class GPT():
       ]
     messages.extend(topic)
     pprint(messages)
-    completion = client.chat.completions.create(model=self.modelVersion,
+    # completion = client.chat.completions.create(model=self.modelVersion,
+    completion = client.chat.completions.create(model='gpt-4-turbo-preview',
         messages=messages,
         temperature=temp,)
         # stream=False)
@@ -309,16 +344,44 @@ See https://github.com/openai/openai-python/blob/main/chatml.md for information 
     lines.append(current_line)
     return "\n".join(lines)
 
+  def answer_yandex(self,promt:str, history:list, temp = 1):
+    messages = [
+      {"role": "system", "content": promt },
+      #{"role": "user", "content": topic}
+      #{"role": "user", "content": context}
+      ]
+    messages.extend(history) 
+    historyPrepare = []
+    for i in messages:
+      if i['role'] == 'user':
+        historyPrepare.append(HumanMessage(i['content']))
+      if i['role'] == 'system':
+        historyPrepare.append(SystemMessage(i['content']))
+        
+    answer = chat_model(historyPrepare)
+    # return answer
+    pprint(answer.content)
+    # pprint(answer.usage)
+    # answerText = answer['alternatives']['message']['text']
+    answerText = answer.content
+    # totalToken = answer['usage']['totalTokens']
+    # priceTokenRUB=0.4*(totalToken/1000)
+    
+    # return f'{answerText}', totalToken, priceTokenRUB
+    return f'{answerText}', 0,0,
   
+
   def asnwer_tools(self, history:list, temp = 1):
     
     historyText=''
     for i in history:
       if i['role'] == 'user':
         historyText+= f"Клиент: {i['content']}\n"
+      # if i['role'] == 'user':
+      #   historyText+= f"{i['content']}\n"
       if i['role'] == 'system':
         historyText+= f"Ассистент: {i['content']}\n"
-
+    print(f'{historyText=}')
     answer=chain.invoke(
       historyText
     )
@@ -404,5 +467,6 @@ See https://github.com/openai/openai-python/blob/main/chatml.md for information 
   
 if __name__ == "__main__":   
   gpt = GPT()
-  a = gpt.answer_assistant('Привет, я хочу узнать о мероприятии на завтра', 1, 0)
+  # a = gpt.answer_assistant('Привет, я хочу узнать о мероприятии на завтра', 1, 0)
+  a = gpt.answer_yandex([{"role": "user", "content": 'привет'}])
   print(a)

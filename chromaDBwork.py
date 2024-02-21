@@ -66,6 +66,10 @@ def prepare_query_chromadb(dict1:dict)->list[dict]:
         # pprint(dic)
         # allText+=f"{event['text']}\n\n"
     return dic
+
+def delete_collection(collectionName:str="my_collection"):
+    client.delete_collection(collectionName)
+
 # Query the collection for events on Thursday
 # results = collection.query(
 #     query_texts=["что в пятницу"],

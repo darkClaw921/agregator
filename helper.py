@@ -171,14 +171,15 @@ def find_patterns_date(text):
     if "сегодня" in text:
         date_matches.append(today.strftime("%d.%m.%Y"))
     if "послезавтра" in text:
-        date_matches.append((tomorrow + timedelta(days=1)).strftime("%d.%m.%Y"))
+        # print('послезавтра')
+        date_matches[0]=((tomorrow + timedelta(days=1)).strftime("%d.%m.%Y"))
     if "выходные" in text:
         date_matches.append(get_next_weekend())
     # if days_of_week_matches_one !=[]:
     #     return days_of_week_matches_one
     
     if date_matches !=[]:
-        print('date_matches')
+        print('date_matches', date_matches)
         if len(date_matches[0])<=5:
             return date_matches[0]+'.2024'
         return date_matches[0]
@@ -382,9 +383,9 @@ def create_db2():
         'hashtags': hastags,
         'themeSearch': theme}        
         # print(theme)
-        pprint(meta)
+        # pprint(meta)
         # prepateText+=f"{separator}\n{pos['text']}"
-        print(hastags)
+        # print(hastags)
         
         add_to_collection(theme,meta)
         # file.write(prepateText)

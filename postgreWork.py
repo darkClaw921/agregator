@@ -65,6 +65,7 @@ class Post(Base):
     token=Column(Float)
     token_price=Column(Float)
     payload=Column(String) 
+    location_str=Column(String)
     
     
 
@@ -114,6 +115,7 @@ def add_new_post(postID:int, chatID:int,
                 language:str=None,
                 event:int=None,
                 price:float=None,
+                location_str:str=None,
                 
                 ):
     with Session() as session:
@@ -136,6 +138,7 @@ def add_new_post(postID:int, chatID:int,
             token_price=tokenPrice,
             payload=payload,
             sender_nickname=senderNickname,
+            location_str=location_str,
         )
         session.add(newPost)
         session.commit()
@@ -195,10 +198,13 @@ def update_token_price_for_user(userID:int, tokenPrice:float):
         user.all_token_price+=tokenPrice
         session.commit()
 
-def update_post(postID:int, theme:str, location:list[str], targets:list[str]):
+def update_post(postID:int, theme:str, location:list[str], targets:list[str], location_str:str=None):
+    # location_str=','.join(location)
+    
+    # print(f'{location_str=}')
     with Session() as session:
         session.query(Post).filter(Post.id==postID)\
-            .update({Post.theme:theme, Post.location:location,
+            .update({Post.theme:theme, Post.location_str:location_str,
                      Post.targets:targets}) 
         session.commit()
 
@@ -222,8 +228,29 @@ def get_posts_for_targets(targets:list[str]):
         for target in targets:
             posts=session.query(Post).filter(Post.token != None,
                                          Post.targets.any(target),
+                                         
                                         #  Post.targets.contains(targets),
                                          Post.date>=(datetime.now()-timedelta(days=1))).all()
+            
+            for post in posts:
+                if post.id not in tempList:
+                    postsAll.append(post)
+                    tempList.append(post.id)
+                
+
+        return postsAll
+
+def get_posts_for_targets_and_location(targets:list[str], location:str):
+    with Session() as session:
+        postsAll=[]
+        tempList=[]
+        for target in targets:
+            posts=session.query(Post).filter(Post.token != None,
+                                         Post.targets.any(target),
+                                         Post.location_str.like(f'%{location}%'),
+                                        #  Post.targets.contains(targets),
+                                         Post.date>=(datetime.now()-timedelta(days=1))).all()
+            
             for post in posts:
                 if post.id not in tempList:
                     postsAll.append(post)
@@ -251,6 +278,19 @@ def check_post(textPost:str)->bool:
             return True
         else:
             return False
+
+# a=get_posts_for_targets_and_location(['танцы','бизнес'], 'убуд')
+# print(a)
+# posts=get_posts()
+# for post in posts:
+#     pprint(post.__dict__)
+#     post.location=''.join(post.location).lower()
+#     print(f'{post.location=}')
+#     # for i,lock in enumerate(post.location):
+#     #     print(lock)
+#     #     post.location[i]=''.join(lock)
+        
+#     update_post(post.id, post.theme, [post.location], post.targets, location_str=post.location)
 
 # a= get_posts_for_targets(['танцы','бизнес'])
 # a= get_posts_for_targets(['танцы','бизнес'])
