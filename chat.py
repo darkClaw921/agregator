@@ -84,7 +84,7 @@ def add_new_event(text:str) -> str:
 
 @tool('find_events',return_direct=True)
 def find_events(theme: str, location: str=None, date: str=None) -> str:
-    """поиск мероприятий в базе только если пользователь указал тему(theme), локацию(location) и дату(date)"""
+    """поиск мероприятий в базе только если пользователь указал тему(theme), локацию(location) и дату(date) в формате который указал пользователь без преобразования"""
         # """поиск мероприятий в базе по theme, date. Учитывает последний запрос пользователя."""
     print(f"Вот что я нашел по вашему запросу: {theme} {location} {date}.")
     return {'theme': theme, 'location': location, 'date': date}
@@ -94,7 +94,7 @@ def find_events(theme: str, location: str=None, date: str=None) -> str:
 
 tools = [conduct_dialogue, add_new_event, find_events]
 # modelTools = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0).bind_tools(tools)
-modelTools = ChatOpenAI(model="gpt-4-turbo-preview", temperature=1).bind_tools(tools)
+modelTools = ChatOpenAI(model="gpt-4-turbo-preview", temperature=0).bind_tools(tools)
 
 def call_tool(tool_invocation: dict) -> Runnable:
     """Function for dynamically constructing the end of the chain based on the model-selected tool."""
@@ -117,7 +117,7 @@ chain = modelTools | JsonOutputToolsParser() | call_tool_list
 # Клиент: Бали
 # Ассистент: какая тема мероприятия вас интересует?
 # Клиент: танцы"""
-history="""Клиент: привет, я хочу узнать о мероприятии на завтра по танцам"""
+history="""Клиент: привет, я хочу узнать о мероприятии на завтра по танцам в убуд"""
 # a=chain.invoke(
 #     [
 #         HumanMessage(
@@ -281,7 +281,7 @@ class GPT():
   
 
   #def answer(self, system, topic, temp = 1):    
-  def answer(self, system, topic:list, temp = 1, modelVersion='gpt-4'):
+  def answer(self, system, topic:list, temp = 1, modelVersion='gpt-4-turbo-preview'):
     """messages = [
       {"role": "system", "content": system},
       {"role": "user", "content": topic}
@@ -295,8 +295,8 @@ class GPT():
       ]
     messages.extend(topic)
     pprint(messages)
-    # completion = client.chat.completions.create(model=self.modelVersion,
-    completion = client.chat.completions.create(model='gpt-4-turbo-preview',
+    completion = client.chat.completions.create(model=modelVersion,
+    # completion = client.chat.completions.create(model='gpt-4-turbo-preview',
         messages=messages,
         temperature=temp,)
         # stream=False)
@@ -308,7 +308,7 @@ class GPT():
     allToken = f'{totalToken} токенов использовано всего (вопрос-ответ).'
     allTokenPrice = f'ЦЕНА запроса с ответом :{0.002*(totalToken/1000)} $'
     #return f'{completion.choices[0].message.content}\n\n{allToken}\n{allTokenPrice}', completion["usage"]["total_tokens"], 0.002*(completion["usage"]["total_tokens"]/1000)
-    return f'{answerText}', totalToken, 0.002*(totalToken/1000)
+    return f'{answerText}', totalToken, 0.03*(totalToken/1000)
   
   @logger.catch
   def num_tokens_from_messages(self, messages, model="gpt-3.5-turbo-0301"):

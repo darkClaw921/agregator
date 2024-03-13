@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, JSON, ARRAY, BigInteger
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, JSON, ARRAY, BigInteger, func, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
@@ -269,6 +269,41 @@ def get_targets_for_user(userID)->list[str]:
         user=session.query(User).filter(User.id==userID).one()
         return user.targets
 
+def get_top_count_targets()->list[str]:
+    with Session() as session:
+        """WITH data AS (
+    SELECT unnest(public.post.targets) AS element
+    FROM public.post
+)
+SELECT element, COUNT(*) AS count
+FROM data
+GROUP BY element
+ORDER BY count DESC;"""
+        # targets=session.query(Post.targets, func.count(Post.targets)).group_by(Post.targets).order_by(func.count(Post.targets).desc()).all()
+        query = session.query(
+            func.unnest(Post.targets).label('element'),
+            func.count().label('count')
+        ).from_statement(
+            text("""
+            WITH data AS (
+            SELECT unnest(public.post.targets) AS element
+            FROM public.post
+            )
+            SELECT element, COUNT(*) AS count
+            FROM data
+            GROUP BY element
+            ORDER BY count DESC
+            """)
+        ).all()
+        return query
+
+def get_all_user_ids()->list[int]:
+    ids=[]
+    with Session() as session:
+        users=session.query(User.id).all()
+        for user in users:
+            ids.append(user.id)
+        return ids
 
 
 def check_post(textPost:str)->bool:
@@ -279,18 +314,33 @@ def check_post(textPost:str)->bool:
         else:
             return False
 
+# a=get_top_count_targets()
+# pprint(a)
+# for i in a:
+#     print(f'{i[0]},')
 # a=get_posts_for_targets_and_location(['танцы','бизнес'], 'убуд')
 # print(a)
 # posts=get_posts()
 # for post in posts:
 #     pprint(post.__dict__)
-#     post.location=''.join(post.location).lower()
-#     print(f'{post.location=}')
+#     # post.location=''.join(post.location).lower()
+#     # print(f'{post.location=}')
 #     # for i,lock in enumerate(post.location):
 #     #     print(lock)
 #     #     post.location[i]=''.join(lock)
+#     if post.location_str is None:
+#         post.location_str='бали'
+#     if post.location_str =='':
+#         post.location_str='бали'
+
+#     find=post.location_str.find('бали')
+#     print(f'{find=}')
+#     if find==-1:
+#         post.location_str+=',бали'
         
-#     update_post(post.id, post.theme, [post.location], post.targets, location_str=post.location)
+#     print(f'{post.location_str=}')
+#     # post.location_str=','.join(post.location).lower()
+#     update_post(post.id, post.theme, [post.location], post.targets, location_str=post.location_str)
 
 # a= get_posts_for_targets(['танцы','бизнес'])
 # a= get_posts_for_targets(['танцы','бизнес'])

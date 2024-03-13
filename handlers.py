@@ -50,6 +50,10 @@ TOKEN = os.getenv('TOKEN')
 gpt=GPT()
 
 
+USER_EVENTS={}
+ids=postgreWork.get_all_user_ids()
+for id in ids:
+    USER_EVENTS[id]=[]
 # textAllPosts=create_db()
 # create_db2()
 # model_index=gpt.load_search_indexes(textAllPosts)
@@ -222,6 +226,7 @@ async def voice_processing(msg: Message, state: FSMContext):
 #Обработка сообщений
 @router.message()
 async def message(msg: Message, state: FSMContext):
+    global USER_EVENTS
     userID = msg.from_user.id
     messText = msg.text
     userName = msg.from_user.username 
@@ -276,8 +281,23 @@ async def message(msg: Message, state: FSMContext):
     # exitText = answer.find('Закончил опрос: 1')
     
     answerTools=gpt.asnwer_tools(history=history)
+    
     # pprint(answerTools)
     if answerTools != []:
+        typeTool=answerTools[0]['type']
+        if typeTool == 'conduct_dialogue':
+            add_message_to_history(msg.chat.id, 'system', answer) 
+            # await msg.answer(f"Твой ID: {msg.from_user.id}")
+            dateNow = datetime.now().strftime("%d.%m.%Y")
+            await msg.answer(answer)
+        
+            postgreWork.add_statistick(userName=userName, text=messText, 
+                                    queryText=answer, token=token, 
+                                    tokenPrice=tokenPrice, theme='gpt') 
+            return 0
+            
+            
+
         # TODO: Добавить обработку таргетов
         promt1=gpt.load_prompt('https://docs.google.com/document/d/1IYhd2AHfcw7jwvOO1qbvgFAXVGnYq-ddpj_LH8_oe_A/edit?usp=sharing')
         asnwerTargets=gpt.answer(promt1, history, 1)
@@ -361,6 +381,11 @@ async def message(msg: Message, state: FSMContext):
             try:
                 event['text']=event['text'].replace('\xa0','')
                 event['text']=event['text']+"\n"+str(event['distance'])+"\n"+event['themeSearch']
+                event
+                if event['id'] in USER_EVENTS[userID]:
+                    continue
+                else:
+                    USER_EVENTS[userID].append(event['id'])
                 await msg.answer(event['text'], parse_mode='HTML')
 
             except Exception as e:

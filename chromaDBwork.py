@@ -62,7 +62,11 @@ def prepare_query_chromadb(dict1:dict)->list[dict]:
     for event,distance1 in zip(metas, distance):
         text=event['text']
         distance=distance1
-        dic.append({'text':text,'distance':distance, 'theme':event['topic'],'themeSearch':event['themeSearch'],'hashtags':event['hashtags']})
+        dic.append({'text':text,'distance':distance, 
+                    'theme':event['topic'],
+                    'themeSearch':event['themeSearch'],
+                    'hashtags':event['hashtags'],
+                    'id':event['id']})
         # pprint(dic)
         # allText+=f"{event['text']}\n\n"
     return dic

@@ -95,7 +95,7 @@ async def new_message_listener(event):
     dateNow = datetime.now().strftime("%d.%m.%Y %A")
     
     promt=promt.replace('[dateNow]',dateNow)
-    answer, allToken, allPrice = gpt.answer(promt,messagesList)
+    answer, allToken, allPrice = gpt.answer(promt,messagesList,1,'gpt-3.5-turbo-16k')
     pprint(answer)
     # if chenalID == 2010911633:
         # await client.send_message(-1002010911633, message=answer,reply_to=event.message)
@@ -155,5 +155,12 @@ async def new_message_listener(event):
     #chenalID записывается без -100 в начале -1002010911633
 
 # Запустите прослушивание новых сообщений
-print('[OK]')
-client.run_until_disconnected()
+async def main():
+    
+    print('[OK]')
+    while True:
+        # try:
+        await client.run_until_disconnected()
+    # except:
+main()
+        # print('Подключение потеряно, переподключение...')
