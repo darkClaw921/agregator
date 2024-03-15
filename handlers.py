@@ -298,7 +298,6 @@ async def message(msg: Message, state: FSMContext):
             
             
 
-        # TODO: Добавить обработку таргетов
         promt1=gpt.load_prompt('https://docs.google.com/document/d/1IYhd2AHfcw7jwvOO1qbvgFAXVGnYq-ddpj_LH8_oe_A/edit?usp=sharing')
         asnwerTargets=gpt.answer(promt1, history, 1)
         # asnwerTargets=gpt.answer_yandex(promt1, history, 1)

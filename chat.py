@@ -28,10 +28,10 @@ from langchain.schema import HumanMessage, SystemMessage
 from langchain_community.chat_models import ChatYandexGPT
 
 key = os.environ.get('OPENAI_API_KEY')
-YC_IAM_TOKEN = os.environ.get('YC_IAM_TOKEN')
+# YC_IAM_TOKEN = os.environ.get('YC_IAM_TOKEN')
 client = OpenAI(api_key=key,)
 
-chat_model = ChatYandexGPT(folder_id='b1g83bovl5hjt7cl583v', model_uri='gpt://b1g83bovl5hjt7cl583v/yandexgpt')       
+# chat_model = ChatYandexGPT(folder_id='b1g83bovl5hjt7cl583v', model_uri='gpt://b1g83bovl5hjt7cl583v/yandexgpt')       
 
 
 class bcolors:
