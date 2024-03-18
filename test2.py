@@ -155,12 +155,14 @@ async def new_message_listener(event):
     #chenalID записывается без -100 в начале -1002010911633
 
 # Запустите прослушивание новых сообщений
-async def main():
+def main():
     
     print('[OK]')
-    while True:
+    
         # try:
-        await client.run_until_disconnected()
+    client.run_until_disconnected()
+
     # except:
-main()
+if __name__ == '__main__':
+    main()
         # print('Подключение потеряно, переподключение...')
