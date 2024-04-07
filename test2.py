@@ -20,7 +20,6 @@ gpt=GPT()
 client = TelegramClient('session_name', api_id, api_hash)
 
 # Авторизуйтесь в клиенте
-# client.start(bot_token='6811604760:AAGTiF5eYAbMQKu4-fnbug7DzpMtEBPlgzc')
 client.start()
 
 # Определите список идентификаторов каналов, из которых вы хотите получать сообщения
