@@ -82,6 +82,24 @@ def add_new_event(text:str) -> str:
     return {'text': text}
 
 
+
+#TODO
+# нужно осознано назвать аргументы @tool
+# def count_emails(last_n_days: int) -> int
+# how many emails did i get in the last 5 days?
+# [{'name': 'count_emails',
+#   'args': {'last_n_days': 5},
+#   'id': 'toolu_012VHuh7vk5dVNct5SgZj3gh',
+#   'output': 10}]
+# https://python.langchain.com/docs/use_cases/tool_use/human_in_the_loop/
+# help function
+@tool('add_new_event',return_direct=True)
+def add_new_event(text:str) -> str:
+    """Добавляет новое мероприятие в базу если пользователь является организатором и хочет добавить мероприятие"""
+    # """поиск мероприятий в базе по theme, date. Учитывает последний запрос пользователя."""
+    print(f"Вот что я нашел по вашему запросу: {text}")
+    return {'text': text}
+
 @tool('find_events',return_direct=True)
 def find_events(theme: str, location: str=None, date: str=None) -> str:
     """поиск мероприятий в базе только если пользователь указал тему(theme), локацию(location) и дату(date) в формате который указал пользователь без преобразования"""
@@ -468,5 +486,6 @@ See https://github.com/openai/openai-python/blob/main/chatml.md for information 
 if __name__ == "__main__":   
   gpt = GPT()
   # a = gpt.answer_assistant('Привет, я хочу узнать о мероприятии на завтра', 1, 0)
-  a = gpt.answer_yandex([{"role": "user", "content": 'привет'}])
+  # a = gpt.answer_yandex([{"role": "user", "content": 'привет'}])
+  a= gpt.answer('Привет, я хочу узнать о мероприятии на завтра', [{'role': 'user', 'content': 'привет'}])
   print(a)

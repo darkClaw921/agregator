@@ -295,7 +295,7 @@ async def message(msg: Message, state: FSMContext):
                                     queryText=answer, token=token, 
                                     tokenPrice=tokenPrice, theme='gpt') 
             return 0
-            
+        
             
 
         promt1=gpt.load_prompt('https://docs.google.com/document/d/1IYhd2AHfcw7jwvOO1qbvgFAXVGnYq-ddpj_LH8_oe_A/edit?usp=sharing')
@@ -344,14 +344,19 @@ async def message(msg: Message, state: FSMContext):
         except:
             date=None
 
-        
+       
+
+       
+
         
         meta={'date':date}
         pprint(meta)
+
         if date == 'None' or date=='0' or date=='' or date is None:
             events=chromaDBwork.query(text=theme, result=5, collectionName=str(userID))
         else:
             events=chromaDBwork.query(text=theme, filter1=meta, result=5, collectionName=str(userID))
+
         events = chromaDBwork.prepare_query_chromadb(events)
         pprint(events)
 
